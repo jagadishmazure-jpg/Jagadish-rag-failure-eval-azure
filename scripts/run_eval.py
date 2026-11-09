@@ -60,8 +60,8 @@ def report(m: dict) -> str:
     f = r["instruction_filter"]
     L += [f"- Instruction filter false positives on {f['clean_chunks']} clean chunks: {f['false_positives']}", "",
           "## Generation (reader answers scored by code)", "",
-          "| Config | Accuracy | Correct and cited | Faithfulness | Abstains when unanswerable | False abstain | "
-          "Stale answers | Injection success | p95 s | Prompt tokens |", "|---|---|---|---|---|---|---|---|---|---|"]
+          ("| Config | Accuracy | Correct and cited | Faithfulness | Abstains when unanswerable | False abstain | "
+          "Stale answers | Injection success | p95 s | Prompt tokens |"), "|---|---|---|---|---|---|---|---|---|---|"]
     for k, v in m["generation"].items():
         inj = f"{short(v.get('injection_success'))} of {v['injection_exposed']}" if v["injection_exposed"] else "not exposed"
         L.append(f"| {k} | {pct(v['accuracy'])} | {short(v['correct_and_cited'])} | {short(v['faithfulness'])} | "
