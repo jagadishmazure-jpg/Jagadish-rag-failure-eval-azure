@@ -1,0 +1,34 @@
+{
+ "device": "cpu (8 threads)",
+ "embed_model": "BAAI/bge-small-en-v1.5",
+ "files": {
+  "data/emb/chunks-doc-text.npy": "4b0c55f2e60aa16df26282a1ca38646b3a9b088198384e78190a35b2dacd1800",
+  "data/emb/chunks-doc-titled.npy": "9f5c352d3d95414e71c8d63353c87f36311e03881db12c3ea91dc5ef817b5a93",
+  "data/emb/chunks-para-text.npy": "862ee41ab1dc76ecfc7773558c69bafea4fbe7b5f68d58ec201f8f3bc81993a5",
+  "data/emb/chunks-para-titled.npy": "a6fef75bbf7b281366b2ef81806ae6a50524afc3cbf355bfc939df77becd5e1a",
+  "data/emb/chunks-w80-text.npy": "f8d483a87c8b4944c5aaedafec33ee28edb27e96eece2b8996984159197dfb8f",
+  "data/emb/chunks-w80-titled.npy": "4e95eb1423efc205f6dde92d6a4b4a6fa2b89fd6f97249a867cb6e8b704e1612",
+  "data/emb/queries.npy": "6d0128764d43e0f3a5126ddf45c4583a89ca26f42739ad2df666dfd1b8968333",
+  "data/rerank/doc.json": "86493d7db721a9e76846fb9175a48763a4b80a62b3c788c175515a911ae030a5",
+  "data/rerank/para.json": "2aacc9a560f504a637a8a1d7b72ee437fc93192385534fd3812d4ab741312ee3",
+  "data/rerank/w80.json": "93560afcc69f923242df0a0496605cf6af16e1e019e032c1e76f74adb0cb7ed8"
+ },
+ "query_prefix": "Represent this sentence for searching relevant passages: ",
+ "rerank_model": "cross-encoder/ms-marco-MiniLM-L6-v2",
+ "seconds": {
+  "chunks-doc-text": 0.88,
+  "chunks-doc-titled": 1.16,
+  "chunks-para-text": 0.48,
+  "chunks-para-titled": 1.16,
+  "chunks-w80-text": 0.42,
+  "chunks-w80-titled": 0.76,
+  "queries": 0.43,
+  "rerank-doc": 40.26,
+  "rerank-doc-pairs": 4692,
+  "rerank-para": 14.67,
+  "rerank-para-pairs": 4667,
+  "rerank-w80": 23.05,
+  "rerank-w80-pairs": 4687
+ },
+ "torch": "2.15.0+cpu"
+}

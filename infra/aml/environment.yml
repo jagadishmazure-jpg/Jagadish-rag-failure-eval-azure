@@ -1,0 +1,8 @@
+name: rag-failure-eval
+channels: [conda-forge]
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - numpy==2.5.4
+      - azureml-inference-server-http==1.5.1

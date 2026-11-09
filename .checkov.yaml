@@ -1,0 +1,26 @@
+# Checkov config for infra/terraform. Every skip has a reason; any finding not listed fails CI.
+# The stack holds only a synthetic corpus and a stateless retrieval service, and is written, not run.
+compact: true
+quiet: true
+framework:
+  - terraform
+skip-check:
+  # Public network access on storage, Key Vault and Azure AI Search stays on so the GitHub runner can
+  # deploy and index without a VNet. Keys are disabled everywhere and every data-plane call needs Entra ID.
+  - CKV_AZURE_59
+  - CKV_AZURE_189
+  - CKV_AZURE_109
+  - CKV_AZURE_124
+  # Private endpoints need a VNet and cost money each month; listed as Planned in the README.
+  - CKV2_AZURE_33
+  - CKV2_AZURE_32
+  # One search replica in dev (no SLA) keeps the bill at one Basic unit; var.search_replicas raises it
+  # to 2 (read SLA) or 3 (read-write SLA) for prod.
+  - CKV_AZURE_208
+  - CKV_AZURE_209
+  # LRS is the smallest setting on purpose; the corpus can be regenerated from scripts/.
+  - CKV_AZURE_206
+  # Queue logging: the account has no queues.
+  - CKV_AZURE_33
+  # Customer-managed keys need key rotation and a second vault key; platform keys suffice for synthetic data.
+  - CKV2_AZURE_1
