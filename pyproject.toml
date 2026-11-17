@@ -11,6 +11,8 @@ dependencies = ["numpy==2.5.4"]
 dev = ["pytest==9.2.0", "ruff==0.17.4"]
 measure = ["llama-cpp-python==0.3.36", "sentence-transformers==6.2.0", "torch==2.15.0"]
 azure = ["azure-search-documents==12.0.0", "azure-identity==1.27.0"]
+judges = ["ragas>=0.2.14", "azure-ai-evaluation>=1.6.0"]
+stores = ["azure-cosmos>=4.7.0", "azure-identity==1.27.0", "psycopg[binary]>=3.2.0"]
 
 [build-system]
 requires = ["hatchling"]

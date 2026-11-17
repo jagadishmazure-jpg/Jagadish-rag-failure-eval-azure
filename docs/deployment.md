@@ -65,6 +65,37 @@ enabling the workflow.
 4. A required reviewer on the `dev` environment.
 5. `DEPLOY_ENABLED=true`, then run **deploy** by hand.
 
+## Vector-store comparison stack (written, not run)
+
+`infra/vectorstores` (Terraform and Bicep) is a second resource group for the store benchmark. It is
+not created by the main deploy job. The `vectorstores` job in `.github/workflows/deploy.yml` is behind
+the same `DEPLOY_ENABLED` gate.
+
+| Store | Setting |
+|---|---|
+| Azure AI Search Basic, keys off, semantic ranker free | `srch-ragvec-<env>` |
+| Cosmos DB for NoSQL, keys off, 400 RU/s, diskANN on `/vector`, 384 dimensions, cosine | `cosmosragvec<env>` |
+| PostgreSQL Flexible Server 16, Burstable B1ms, 32 GiB, Entra ID only, `azure.extensions=VECTOR` | `psql-ragvec-<env>` |
+
+Public network access is on, for the same reason as the main stack (no VNet). There is no database
+password in the templates. A laptop pgvector container is `docker compose up -d` and is not Azure.
+
+Estimated always-on cost, before a live price check: Search about $74 (the figure above), Cosmos DB
+about $24 at 400 RU/s, PostgreSQL about $16 for B1ms plus 32 GiB. See
+[vector-store-guide.md](vector-store-guide.md). Delete the resource group to stop charges.
+
+Live bench switches, all unset in CI:
+
+| Variable | Effect |
+|---|---|
+| `RAGFAIL_LIVE_JUDGES=1` plus `AZURE_OPENAI_ENDPOINT` and `AZURE_OPENAI_DEPLOYMENT` | RAGAS and Azure AI Evaluation SDK |
+| `RAGFAIL_LIVE_LLM=1` | model rewrites for HyDE, multi-query, step-back, decomposition |
+| `AZURE_SEARCH_ENDPOINT` and `AZURE_SEARCH_KNOWLEDGE_BASE` | agentic retrieval |
+| `COSMOS_ENDPOINT`, `COSMOS_DATABASE`, `COSMOS_CONTAINER` | Cosmos vector search |
+| `PGVECTOR_DSN` | Azure PostgreSQL or the local compose database |
+| `FINETUNE_ENDPOINT` | served fine-tune / RAFT adapter |
+| `GRAPHRAG_QUERY_URL` | GraphRAG query endpoint |
+
 ## Planned, not built
 
 Private endpoints and a VNet, a prod stage, a teardown workflow, query-time vectors in the endpoint

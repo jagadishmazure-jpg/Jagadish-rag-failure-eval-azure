@@ -59,7 +59,7 @@ def documents(chunks: list[dict], emb: np.ndarray) -> list[dict]:
 
 
 def query_body(question: str, query_vector: list[float] | None = None, guards: bool = True,
-               candidates: int = 20) -> dict:
+               candidates: int = 20, filter_expr: str | None = None) -> dict:
     """Keyword (BM25) query, plus a vector query when a vector is given (hybrid, fused by the service),
     re-ranked by the semantic ranker."""
     body = {"search": question, "top": candidates, "queryType": "semantic", "semanticConfiguration": "default",
@@ -68,7 +68,9 @@ def query_body(question: str, query_vector: list[float] | None = None, guards: b
         if len(query_vector) != DIMS:
             raise ValueError("query vector has the wrong dimensions")
         body["vectorQueries"] = [{"kind": "vector", "vector": query_vector, "fields": "vector", "k": candidates}]
-    if guards:
+    if filter_expr:
+        body["filter"] = filter_expr
+    elif guards:
         body["filter"] = "status eq 'current'"
     return body  # the caller reorders policy-first (retrieval.apply_guards) and keeps the top k
 
@@ -87,16 +89,21 @@ def upload(endpoint: str, chunks: list[dict], emb: np.ndarray) -> None:  # pragm
         client.upload_documents(docs[i:i + 500])
 
 
-def search(endpoint: str, question: str, k: int = 3) -> list[dict]:  # pragma: no cover - needs Azure
-    """Query the index and return chunk records, policy documents first, top k."""
+def search(endpoint: str, question: str, k: int = 3, query_vector: list[float] | None = None,
+           guards: bool = True, filter_expr: str | None = None) -> list[dict]:  # pragma: no cover - needs Azure
+    """Query the index and return chunk records, policy documents first, top k.
+
+    A query vector turns this into hybrid search (keyword + vector) with the semantic ranker, which is
+    the same body ``query_body`` builds for agentic and the vector-store live path.
+    """
     from azure.identity import DefaultAzureCredential
     from azure.search.documents import SearchClient
 
-    body = query_body(question)
+    body = query_body(question, query_vector, guards=guards, filter_expr=filter_expr)
     client = SearchClient(endpoint, INDEX, DefaultAzureCredential())
-    hits = list(client.search(search_text=body["search"], top=body["top"], query_type=body["queryType"],
+    hits = list(client.search(search_text=body["search"], top=min(k, body["top"]), query_type=body["queryType"],
                               semantic_configuration_name=body["semanticConfiguration"], filter=body.get("filter"),
-                              select=body["select"].split(",")))
+                              select=body["select"].split(","), vector_queries=body.get("vectorQueries")))
     rows = [{**h, "titled": h["text"]} for h in hits]
     rows = [r for r in rows if r["doc_type"] == "policy"] + [r for r in rows if r["doc_type"] != "policy"]
     return rows[:k]

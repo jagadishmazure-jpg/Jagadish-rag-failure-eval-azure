@@ -20,3 +20,7 @@
 9. **For Azure**, mirror the guards in Azure AI Search (filter on `status`, a field for the source type)
    and re-run the same questions against the cloud pipeline before switching traffic. See
    [deployment.md](deployment.md).
+10. **Query rewriting, GraphRAG and another vector store are separate benches.** They default to
+    deterministic stand-ins and score with the same taxonomy. Turn on the live path only after the
+    mock table is understood. See [advanced-rag.md](advanced-rag.md),
+    [vector-store-guide.md](vector-store-guide.md) and [rag-vs-finetune.md](rag-vs-finetune.md).
