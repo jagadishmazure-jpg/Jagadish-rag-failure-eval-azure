@@ -188,6 +188,7 @@
   "distractors_dropped": 157,
   "finetune_description": "Mock QLoRA adapter. Trained facts are answered from memory. Facts with a superseded value were learned from the old number. Held-out and unanswerable questions return 9999.",
   "held_out_facts": 29,
+  "judge_scale": "unit",
   "mode": "mock",
   "questions": 182,
   "train_facts": 46

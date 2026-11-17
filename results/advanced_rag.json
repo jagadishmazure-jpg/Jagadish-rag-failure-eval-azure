@@ -16,6 +16,7 @@
     "local": 176,
     "vector_fallback": 6
   },
+  "judge_scale": "unit",
   "k": 3,
   "mode": "mock",
   "questions": 182,

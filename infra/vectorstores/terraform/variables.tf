@@ -23,6 +23,12 @@ variable "prefix" {
   }
 }
 
+variable "entra_admin_name" {
+  description = "Display name or client id of the Entra service principal that administers PostgreSQL. The deploy workflow passes the OIDC app client id."
+  type        = string
+  default     = "rag-failure-eval"
+}
+
 variable "tags" {
   description = "Tags on every resource."
   type        = map(string)

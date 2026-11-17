@@ -21,7 +21,7 @@ into a single failure category.
   conflicting values make up 50.0%<!-- m:generation/no_guards/stale_answers/rate --> of answers on those
   questions, and accuracy falls to 64.0%<!-- m:generation/no_guards/accuracy/rate -->. The weakest spot is
   abstention: the main setup says "not found" on only 78.1%<!-- m:generation/main/abstain_when_unanswerable/rate -->
-  of unanswerable questions. <!-- tests -->99<!-- /tests --> tests, CI green.
+  of unanswerable questions. <!-- tests -->104<!-- /tests --> tests, CI green.
 
 ## Purpose and who it is for
 

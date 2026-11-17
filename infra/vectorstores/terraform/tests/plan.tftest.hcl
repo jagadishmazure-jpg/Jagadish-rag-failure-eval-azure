@@ -62,6 +62,21 @@ run "dev_plan" {
     condition     = azurerm_postgresql_flexible_server_configuration.vector.value == "VECTOR"
     error_message = "pgvector must be allowlisted (Azure calls the extension VECTOR)"
   }
+
+  assert {
+    condition     = azurerm_postgresql_flexible_server_active_directory_administrator.admin.principal_type == "ServicePrincipal"
+    error_message = "the OIDC deploy identity is a service principal, not a user"
+  }
+
+  assert {
+    condition     = azurerm_postgresql_flexible_server_firewall_rule.azure.start_ip_address == "0.0.0.0"
+    error_message = "Azure services need the 0.0.0.0 firewall rule"
+  }
+
+  assert {
+    condition     = azurerm_role_assignment.deployer_search.role_definition_name == "Search Index Data Contributor"
+    error_message = "the deploy identity must be able to load and query the index"
+  }
 }
 
 run "bad_env_rejected" {

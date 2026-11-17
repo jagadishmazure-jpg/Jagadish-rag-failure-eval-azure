@@ -120,13 +120,37 @@ def live_judge_rows(rows: list[dict], *, ragas_eval=None, azure_eval=None) -> di
     return out
 
 
-def _ragas_evaluate(dataset: list[dict]) -> dict:
+def _azure_ragas_llm():
+    """RAGAS LLM pointed at the same Azure OpenAI deployment the Azure evaluators use."""
+    try:
+        from openai import AzureOpenAI
+        from ragas.llms import llm_factory
+    except ImportError:
+        raise RuntimeError('RAGAS live scoring needs openai as well as ragas. pip install -e ".[judges]"') from None
+    endpoint, deployment = load_live_backends()
+    key = os.environ.get("AZURE_OPENAI_API_KEY")
+    if key:
+        client = AzureOpenAI(azure_endpoint=endpoint, api_key=key,
+                             api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-06-01"))
+    else:
+        try:
+            from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+        except ImportError:
+            raise RuntimeError("RAGAS live scoring needs AZURE_OPENAI_API_KEY or azure-identity") from None
+        provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+        client = AzureOpenAI(azure_endpoint=endpoint, azure_ad_token_provider=provider,
+                             api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-06-01"))
+    return llm_factory(deployment, client=client)
+
+
+def _ragas_evaluate(dataset: list[dict], *, llm_builder=None) -> dict:
     from ragas import EvaluationDataset, evaluate
     from ragas.metrics import AnswerRelevancy, ContextPrecision, ContextRecall, Faithfulness
 
     result = evaluate(
         EvaluationDataset.from_list(dataset),
         metrics=[Faithfulness(), AnswerRelevancy(), ContextPrecision(), ContextRecall()],
+        llm=(llm_builder or _azure_ragas_llm)(),
     )
     scores = result.scores if hasattr(result, "scores") else dict(result)
     # ragas aggregates to a list of per-row dicts or a summary dict depending on version.

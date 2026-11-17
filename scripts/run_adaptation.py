@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from ragfail.adaptation import run_adaptation, summary_lines  # noqa: E402
+from ragfail.reports import atomic_json  # noqa: E402
 
 OUT = ROOT / "results" / "adaptation.json"
 
@@ -29,7 +30,7 @@ def main() -> int:
         print("adaptation bench matches results/adaptation.json")
         return 0
     if "--write" in sys.argv:
-        OUT.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+        atomic_json(OUT, report)
     print("\n".join(summary_lines(report)))
     return 0
 

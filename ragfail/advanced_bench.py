@@ -13,12 +13,12 @@ from __future__ import annotations
 import numpy as np
 
 from . import data
-from .agentic_search import agentic_chunks
+from .agentic_search import agentic_chunks, live_agentic_enabled
 from .extractive import extractive_answer
-from .graphrag import local_chunks
-from .judges import judge_rows
+from .graphrag import live_graphrag_enabled, local_chunks
+from .judges import judge_rows, live_judges_enabled
 from .metrics import rate
-from .query_rewrite import decompose_query, hyde_document, multi_queries, step_back_query
+from .query_rewrite import live_llm_enabled, live_rewrites
 from .retrieval import apply_guards, rank, rrf
 from .scoring import CATEGORIES, score
 from .self_rag import self_rag
@@ -41,9 +41,9 @@ def _dense(retriever, q: dict) -> list[int]:
     return rank(retriever.emb @ retriever.qemb[q["qid"]].astype(np.float32))
 
 
-def _hyde_vector(retriever, question: str) -> np.ndarray:
-    """Embed the hypothetical document as a BM25-weighted average of chunk vectors."""
-    scores = retriever.bm25.scores(hyde_document(question))
+def _hyde_vector(retriever, text: str) -> np.ndarray:
+    """Embed a hypothetical document as a BM25-weighted average of chunk vectors."""
+    scores = retriever.bm25.scores(text)
     idx = np.argsort(-scores, kind="mergesort")[:20]
     weights = np.maximum(scores[idx], 0)
     if float(weights.sum()) == 0.0:
@@ -72,16 +72,12 @@ def retrieve(name: str, q: dict, retriever) -> tuple[list[dict], str | None, lis
     if name == "vector":
         return retriever.top(q, "dense", K), None, []
     if name == "hyde":
-        hypo = hyde_document(q["question"])
-        pseudo = _hyde_vector(retriever, q["question"]).astype(np.float32)
+        hypo = live_rewrites(q["question"], "hyde")[0]
+        pseudo = _hyde_vector(retriever, hypo).astype(np.float32)
         order = rrf(rank(retriever.bm25.scores(hypo)), rank(retriever.emb @ pseudo), _dense(retriever, q))
         return _guarded(retriever, order), None, []
-    if name == "multi_query":
-        return _guarded(retriever, _fuse_bm25(retriever, multi_queries(q["question"]), q)), None, []
-    if name == "step_back":
-        return _guarded(retriever, _fuse_bm25(retriever, [q["question"], step_back_query(q["question"])], q)), None, []
-    if name == "decomposition":
-        return _guarded(retriever, _fuse_bm25(retriever, decompose_query(q["question"]), q)), None, []
+    if name in ("multi_query", "step_back", "decomposition"):
+        return _guarded(retriever, _fuse_bm25(retriever, live_rewrites(q["question"], name), q)), None, []
     if name == "agentic":
         return agentic_chunks(q, retriever, K), None, []
     if name == "graphrag":
@@ -132,8 +128,13 @@ def run_advanced(strategies: tuple[str, ...] = STRATEGIES, *, ragas_eval=None, a
             "judge": judged,
             "judge_backend": backend,
         }
+    backend = next(iter(out_strategies.values()), {}).get("judge_backend", "mock")
+    live = [name for name, on in (("llm", live_llm_enabled()), ("agentic", live_agentic_enabled()),
+                                  ("graphrag", live_graphrag_enabled()),
+                                  ("judges", bool(live_judges_enabled() or ragas_eval or azure_eval))) if on]
     return {
-        "mode": "mock",
+        "mode": "mock" if not live else "live:" + ",".join(live),
+        "judge_scale": "azure-1-to-5" if backend != "mock" else "unit",
         "reader": "extractive",
         "k": K,
         "questions": len(questions),
@@ -145,9 +146,13 @@ def run_advanced(strategies: tuple[str, ...] = STRATEGIES, *, ragas_eval=None, a
 
 
 def summary_lines(report: dict) -> list[str]:
+    if report.get("mode", "mock") == "mock":
+        head = ("mode: mock. Judges: RAGAS and Azure AI Evaluation metric names, scored by code. "
+                "Set RAGFAIL_LIVE_JUDGES=1 (and install the [judges] extra) to call the libraries.")
+    else:
+        head = f"mode: {report['mode']}. judge_scale: {report.get('judge_scale', 'unit')}."
     lines = [
-        ("mode: mock. Judges: RAGAS and Azure AI Evaluation metric names, scored by code. "
-         "Set RAGFAIL_LIVE_JUDGES=1 (and install the [judges] extra) to call the libraries."),
+        head,
         f"questions: {report['questions']}. Reader: extractive. k={report['k']}.",
         "",
         f"{'strategy':<16} {'accuracy':>8} {'abstain':>8} {'faith':>8} {'ctx_rec':>8} {'ctx_prec':>8} {'stale':>8}  top_failure",

@@ -9,6 +9,7 @@ param location string = resourceGroup().location
 @minLength(3)
 @maxLength(10)
 param prefix string = 'ragvec'
+param entraAdminName string = 'rag-failure-eval'
 param tags object = {
   workload: 'rag-vector-stores'
   owner: 'ops-platform'
@@ -126,9 +127,39 @@ resource pgadmin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-
   parent: pg
   name: deployer().objectId
   properties: {
-    principalType: 'User'
-    principalName: 'deployer'
+    principalType: 'ServicePrincipal'
+    principalName: entraAdminName
     tenantId: subscription().tenantId
+  }
+}
+
+// 0.0.0.0 is the Azure "allow Azure services" rule, not every address on the internet.
+resource pgAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
+  parent: pg
+  name: 'allow-azure-services'
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '0.0.0.0'
+  }
+}
+
+resource searchWriter 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(search.id, deployer().objectId, 'search-index-data-contributor')
+  scope: search
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84db')
+    principalId: deployer().objectId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource cosmosWriter 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-05-15' = {
+  parent: cosmos
+  name: guid(cosmos.id, deployer().objectId, 'cosmos-data-contributor')
+  properties: {
+    roleDefinitionId: '${cosmos.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
+    principalId: deployer().objectId
+    scope: cosmos.id
   }
 }
 

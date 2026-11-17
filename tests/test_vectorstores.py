@@ -53,6 +53,9 @@ def test_query_builders_bind_values_and_reject_unknown_fields():
     assert "SELECT TOP 3" in sql and "@f0" in sql and "current" not in sql.split("WHERE", 1)[1]
     assert "status eq 'current'" in odata_filter({"status": "current"})
     assert "O''Brien" in odata_filter({"district": "O'Brien"})
+    assert odata_filter({"district": None}) == "district eq null"
+    assert "IS NULL" in pg_sql(3, {"district": None})
+    assert "IS_NULL" in cosmos_query(3, {"district": None})
     pg = pg_sql(3, {"status": "current"})
     assert pg.count("%s") == 3  # filter value, vector, limit
     assert "current" not in pg
@@ -107,6 +110,16 @@ def test_committed_store_bench_omits_machine_local_latency(report):
     committed = json.loads(RESULTS.read_text())
     assert committed == committed_view(report)
     assert "p95_ms" not in committed["stores"][0]
+
+
+def test_cosmos_items_keep_the_partition_key_and_drop_the_hash():
+    from ragfail.vectorstores import cosmos_items
+
+    chunks, emb = _tiny()
+    chunks[0]["chunk_id"] = "leak#w800"
+    items = cosmos_items(chunks, emb)
+    assert items[0]["id"] == "leak_w800" and items[0]["doc_id"] == "a"
+    assert len(items[0]["vector"]) == 3
 
 
 def test_build_stores_uses_the_same_chunk_matrix():

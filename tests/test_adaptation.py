@@ -7,6 +7,8 @@ import pytest
 from ragfail import data
 from ragfail.adaptation import (
     ARMS,
+    _raft_chunks,
+    endpoint_accepts_token,
     finetune_payload,
     in_train,
     mock_finetune_answer,
@@ -32,6 +34,24 @@ def test_finetune_payload_sends_passages_only_for_raft():
         finetune_payload("q", None, "other")
 
 
+def test_token_is_not_sent_to_a_plain_http_host():
+    endpoint_accepts_token("https://adapter.example/score", "secret")
+    endpoint_accepts_token("http://127.0.0.1:9/score", "secret")
+    with pytest.raises(ValueError):
+        endpoint_accepts_token("http://adapter.example/score", "secret")
+
+
+def test_raft_drops_every_chunk_when_none_match_the_district():
+    from conftest import chunk
+
+    class OnlyOther:
+        def top(self, q, setup, k):
+            return [chunk(district="Ebbersley")]
+
+    q = next(q for q in data.questions() if "Quillby" in q["question"])
+    assert _raft_chunks(q, OnlyOther()) == []
+
+
 def test_mock_adapter_memorises_the_old_number_and_hallucinates_held_out():
     train = next(q for q in data.questions() if q["answerable"] and q["stale_value"] is not None and in_train(q["fact_id"]))
     held = next(q for q in data.questions() if q["answerable"] and q["fact_id"] and not in_train(q["fact_id"]))
@@ -48,7 +68,7 @@ def report():
 
 def test_three_arms_use_the_taxonomy_and_the_judge_names(report):
     assert set(report["arms"]) == set(ARMS)
-    assert report["mode"] == "mock"
+    assert report["mode"] == "mock" and report["judge_scale"] == "unit"
     for name, row in report["arms"].items():
         assert sum(row["taxonomy"].values()) == report["questions"], name
         assert set(row["taxonomy"]) == set(CATEGORIES)

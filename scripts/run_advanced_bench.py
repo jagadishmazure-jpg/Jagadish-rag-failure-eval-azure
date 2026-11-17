@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from ragfail.advanced_bench import run_advanced, summary_lines  # noqa: E402
+from ragfail.reports import atomic_json  # noqa: E402
 
 OUT = ROOT / "results" / "advanced_rag.json"
 
@@ -29,7 +30,7 @@ def main() -> int:
         print("advanced rag bench matches results/advanced_rag.json")
         return 0
     if "--write" in sys.argv:
-        OUT.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+        atomic_json(OUT, report)
     print("\n".join(summary_lines(report)))
     return 0
 

@@ -102,11 +102,27 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       - name: Provision the three vector stores (Search, Cosmos DB, PostgreSQL)
+        # State stays on the runner, the same as the main deploy job. This stack does not create a
+        # storage account, so a remote backend would need one that already exists. A second apply
+        # needs the state from the first run. CI validates with -backend=false and does not apply.
+        env:
+          TF_VAR_entra_admin_name: ${{ vars.AZURE_CLIENT_ID }}
         run: |
           if [[ "$TOOL" == "bicep" ]]; then
             az group create -n rg-ragvec-dev -l eastus2
-            az deployment group create -g rg-ragvec-dev -f infra/vectorstores/bicep/main.bicep -p infra/vectorstores/bicep/main.parameters.json
+            az deployment group create -g rg-ragvec-dev -f infra/vectorstores/bicep/main.bicep -p infra/vectorstores/bicep/main.parameters.json entraAdminName="${{ vars.AZURE_CLIENT_ID }}"
           else
             terraform -chdir=infra/vectorstores/terraform init -input=false
             terraform -chdir=infra/vectorstores/terraform apply -input=false -auto-approve -var-file=envs/dev.tfvars
           fi
+      - name: Load the benchmark corpus into the three stores
+        env:
+          AZURE_SEARCH_ENDPOINT: https://srch-ragvec-dev.search.windows.net
+          COSMOS_ENDPOINT: https://cosmosragvecdev.documents.azure.com:443/
+          COSMOS_DATABASE: tessmoor
+          COSMOS_CONTAINER: chunks
+          PGVECTOR_ENTRA: "1"
+          PGVECTOR_DSN: postgresql://${{ vars.AZURE_CLIENT_ID }}@psql-ragvec-dev.postgres.database.azure.com/tessmoor?sslmode=require
+        run: |
+          pip install -r requirements.txt azure-search-documents==12.0.0 azure-identity==1.27.0 'azure-cosmos>=4.7.0' 'psycopg[binary]>=3.2.0'
+          python scripts/load_vectorstores.py

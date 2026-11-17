@@ -7,8 +7,10 @@ Set ``RAGFAIL_LIVE_LLM=1`` and the Azure OpenAI variables to replace ``rewrite_l
 
 from __future__ import annotations
 
+import json
 import os
 import re
+import urllib.request
 
 from .corpus import DISTRICTS
 from .retrieval import tokenize
@@ -86,6 +88,62 @@ def decompose_query(question: str) -> list[str]:
 
 def live_llm_enabled() -> bool:
     return os.environ.get("RAGFAIL_LIVE_LLM") == "1"
+
+
+def offline_rewrites(question: str, kind: str) -> list[str]:
+    """The deterministic queries the bench fuses. Live mode replaces the generated lines only."""
+    if kind == "hyde":
+        return [hyde_document(question)]
+    if kind == "multi_query":
+        return multi_queries(question)
+    if kind == "step_back":
+        return [question, step_back_query(question)]
+    if kind == "decomposition":
+        return decompose_query(question)
+    raise ValueError(f"unknown rewrite: {kind}")
+
+
+def live_rewrites(question: str, kind: str) -> list[str]:
+    if not live_llm_enabled():
+        return offline_rewrites(question, kind)
+    text = chat_completion(rewrite_request(question, kind))
+    lines = [line.strip(" -") for line in text.splitlines() if line.strip()]
+    if kind == "hyde":
+        return [text.strip() or hyde_document(question)]
+    if kind == "step_back":
+        return [question, (lines[0] if lines else step_back_query(question))]
+    return list(dict.fromkeys([question, *lines])) or offline_rewrites(question, kind)
+
+
+def chat_completion(body: dict) -> str:
+    """One Azure OpenAI chat call. Raises if the endpoint or a credential is missing."""
+    endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT", "").rstrip("/")
+    deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "")
+    if not endpoint or not deployment:
+        raise RuntimeError("RAGFAIL_LIVE_LLM=1 needs AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_DEPLOYMENT")
+    version = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-06-01")
+    url = f"{endpoint}/openai/deployments/{deployment}/chat/completions?api-version={version}"
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=_openai_headers(), method="POST")
+    with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310 - the caller's Azure endpoint
+        payload = json.loads(resp.read().decode())
+    try:
+        return str(payload["choices"][0]["message"]["content"])
+    except (KeyError, IndexError, TypeError):
+        raise RuntimeError("Azure OpenAI response has no message content") from None
+
+
+def _openai_headers() -> dict[str, str]:
+    key = os.environ.get("AZURE_OPENAI_API_KEY")
+    if key:
+        return {"api-key": key, "Content-Type": "application/json"}
+    token = os.environ.get("AZURE_OPENAI_TOKEN")
+    if not token:
+        try:
+            from azure.identity import DefaultAzureCredential
+        except ImportError:
+            raise RuntimeError("RAGFAIL_LIVE_LLM=1 needs AZURE_OPENAI_API_KEY or azure-identity") from None
+        token = DefaultAzureCredential().get_token("https://cognitiveservices.azure.com/.default").token
+    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
 
 def rewrite_request(question: str, kind: str) -> dict:

@@ -156,11 +156,38 @@ resource "azurerm_postgresql_flexible_server_configuration" "vector" {
   value     = "VECTOR"
 }
 
+# 0.0.0.0-0.0.0.0 is the Azure "allow Azure services" rule, not the whole internet.
+# A laptop still needs its own firewall rule before it can connect.
+resource "azurerm_postgresql_flexible_server_firewall_rule" "azure" {
+  name             = "allow-azure-services"
+  server_id        = azurerm_postgresql_flexible_server.pg.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "0.0.0.0"
+}
+
 resource "azurerm_postgresql_flexible_server_active_directory_administrator" "admin" {
   server_name         = azurerm_postgresql_flexible_server.pg.name
   resource_group_name = azurerm_resource_group.rg.name
   tenant_id           = data.azurerm_client_config.current.tenant_id
   object_id           = data.azurerm_client_config.current.object_id
-  principal_name      = "deployer"
-  principal_type      = "User"
+  principal_name      = var.entra_admin_name
+  principal_type      = "ServicePrincipal"
+}
+
+# The deploy identity (OIDC app) loads and queries the indexes. Keys are disabled, so this is the
+# data-plane permission. Search Index Data Contributor covers upload and query.
+resource "azurerm_role_assignment" "deployer_search" {
+  scope                = azurerm_search_service.search.id
+  role_definition_name = "Search Index Data Contributor"
+  principal_id         = data.azurerm_client_config.current.object_id
+  principal_type       = "ServicePrincipal"
+}
+
+# Cosmos data-plane role (not an ARM role). Built-in Data Contributor.
+resource "azurerm_cosmosdb_sql_role_assignment" "deployer" {
+  resource_group_name = azurerm_resource_group.rg.name
+  account_name        = azurerm_cosmosdb_account.db.name
+  role_definition_id  = "${azurerm_cosmosdb_account.db.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+  principal_id        = data.azurerm_client_config.current.object_id
+  scope               = azurerm_cosmosdb_account.db.id
 }

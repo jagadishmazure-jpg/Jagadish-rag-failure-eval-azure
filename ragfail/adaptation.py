@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import urllib.parse
 import urllib.request
 
 from . import data
@@ -49,15 +50,28 @@ def live_finetune_enabled() -> bool:
     return bool(os.environ.get("FINETUNE_ENDPOINT"))
 
 
+def endpoint_accepts_token(url: str, token: str | None) -> None:
+    """A bearer token goes only over HTTPS, or to localhost for a local adapter."""
+    if not token:
+        return
+    parsed = urllib.parse.urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme == "https" or host in {"localhost", "127.0.0.1", "::1"}:
+        return
+    raise ValueError("FINETUNE_TOKEN requires an https endpoint, or localhost")
+
+
 def _post_finetune(question: str, passages: list[dict] | None, mode: str) -> str:
+    url = os.environ["FINETUNE_ENDPOINT"]
+    token = os.environ.get("FINETUNE_TOKEN")
+    endpoint_accepts_token(url, token)
     payload = finetune_payload(question, passages, mode)
     req = urllib.request.Request(
-        os.environ["FINETUNE_ENDPOINT"],
+        url,
         data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    token = os.environ.get("FINETUNE_TOKEN")
     if token:
         req.add_header("Authorization", f"Bearer {token}")
     with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 - endpoint is the caller's
@@ -85,8 +99,7 @@ def _raft_chunks(q: dict, retriever) -> list[dict]:
     district = detect_district(q["question"])
     if not district:
         return chunks
-    matched = [c for c in chunks if c["district"] in (district, None)]
-    return matched or chunks
+    return [c for c in chunks if c["district"] in (district, None)]
 
 
 def _arm_rows(name: str, questions: list[dict], retriever) -> tuple[list[dict], int]:
@@ -119,6 +132,7 @@ def run_adaptation(*, ragas_eval=None, azure_eval=None) -> dict:
     fact_ids = sorted({q["fact_id"] for q in questions if q["fact_id"]})
     arms = {}
     dropped = 0
+    scale = "unit"
     for name in ARMS:
         rows, dropped_n = _arm_rows(name, questions, retriever)
         dropped += dropped_n
@@ -126,6 +140,7 @@ def run_adaptation(*, ragas_eval=None, azure_eval=None) -> dict:
         unanswerable = [r for r in rows if not r["question"]["answerable"]]
         stale = [r for r in answerable if r["question"]["stale_value"] is not None]
         backend, judged = judge_rows(rows, ragas_eval=ragas_eval, azure_eval=azure_eval)
+        scale = "azure-1-to-5" if backend != "mock" else "unit"
         arms[name] = {
             "accuracy": rate(sum(r["scored"]["correct"] for r in answerable), len(answerable)),
             "abstain_when_unanswerable": rate(sum(r["scored"]["abstained"] for r in unanswerable), len(unanswerable)),
@@ -135,12 +150,16 @@ def run_adaptation(*, ragas_eval=None, azure_eval=None) -> dict:
             "judge": judged,
             "judge_backend": backend,
         }
+    live_ft = live_finetune_enabled()
     report = {
-        "mode": "live-finetune" if live_finetune_enabled() else "mock",
+        "mode": "live-finetune" if live_ft else "mock",
+        "judge_scale": scale,
         "questions": len(questions),
         "train_facts": sum(in_train(f) for f in fact_ids),
         "held_out_facts": sum(not in_train(f) for f in fact_ids),
         "finetune_description": (
+            "Fine-tune and RAFT answers came from FINETUNE_ENDPOINT. The RAG arm stayed local."
+            if live_ft else
             "Mock QLoRA adapter. Trained facts are answered from memory. Facts with a superseded "
             "value were learned from the old number. Held-out and unanswerable questions return 9999."
         ),
@@ -178,8 +197,11 @@ def decision_guide(report: dict) -> str:
     if ft["citation_ok"]["rate"] + 0.05 < rag["citation_ok"]["rate"]:
         lines.append("Citations: a fine-tuned answer has no passage, so a correct number is "
                      "citation_mismatch in the taxonomy. Use that arm only when a citation is not required.")
-    lines.append("Point FINETUNE_ENDPOINT at a served QLoRA adapter to replace the mock fine-tune and RAFT answers. "
-                 "Live rows are not measured.")
+    if report.get("mode") == "mock":
+        lines.append("Point FINETUNE_ENDPOINT at a served QLoRA adapter to replace the mock fine-tune and RAFT answers. "
+                     "Live rows are not measured.")
+    else:
+        lines.append("Fine-tune and RAFT answers came from FINETUNE_ENDPOINT. RAG stayed on the local retriever.")
     return " ".join(lines)
 
 

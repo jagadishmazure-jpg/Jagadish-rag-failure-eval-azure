@@ -49,11 +49,12 @@ In-process p95 is measured and returned as p95_ms. It is machine-local and is no
 ```
 <!-- /run -->
 
-Local pgvector:
+Local pgvector, bound to localhost. The password is not in the compose file:
 
 ```bash
+export PGVECTOR_PASSWORD=...
 docker compose up -d
-# PGVECTOR_DSN=postgresql://tessmoor:local-dev-only@localhost:5432/tessmoor
+# PGVECTOR_DSN=postgresql://tessmoor:${PGVECTOR_PASSWORD}@127.0.0.1:5432/tessmoor
 ```
 
-The compose password is a laptop default. The Azure server does not accept a password.
+The Azure server does not accept a password. Set `PGVECTOR_ENTRA=1` and `scripts/load_vectorstores.py` connects with an Entra token. The deploy job loads Search, Cosmos DB and PostgreSQL after it creates them. Terraform state for that job stays on the runner, the same as the main stack: a second apply needs the first run's state.

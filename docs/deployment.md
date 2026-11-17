@@ -78,7 +78,13 @@ the same `DEPLOY_ENABLED` gate.
 | PostgreSQL Flexible Server 16, Burstable B1ms, 32 GiB, Entra ID only, `azure.extensions=VECTOR` | `psql-ragvec-<env>` |
 
 Public network access is on, for the same reason as the main stack (no VNet). There is no database
-password in the templates. A laptop pgvector container is `docker compose up -d` and is not Azure.
+password in the templates. PostgreSQL password authentication is off; the OIDC app is registered as
+a service principal, granted Search Index Data Contributor and the Cosmos DB Built-in Data
+Contributor role, and the server allows Azure services through the `0.0.0.0` firewall rule. A laptop
+still needs its own firewall rule. A laptop pgvector container is `docker compose up -d` on
+`127.0.0.1` and is not Azure. `scripts/load_vectorstores.py` fills whichever stores have env vars;
+the gated deploy job runs it after provision. Terraform state stays on the runner, the same as the
+main deploy job, because this stack does not create a storage account for a remote backend.
 
 Estimated always-on cost, before a live price check: Search about $74 (the figure above), Cosmos DB
 about $24 at 400 RU/s, PostgreSQL about $16 for B1ms plus 32 GiB. See

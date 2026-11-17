@@ -172,36 +172,78 @@ class PgVectorStore:
         return [Hit(self.chunks[i]["chunk_id"], float(scores[i]), self.chunks[i]) for i in order[:k] if scores[i] > -np.inf]
 
 
+def _check_filter(flt: dict | None) -> list[str]:
+    keys = sorted(flt or {})
+    unknown = [key for key in keys if key not in FILTER_FIELDS]
+    if unknown:
+        raise ValueError(f"unsupported filter field: {unknown[0]}")
+    return keys
+
+
 def cosmos_query(k: int, flt: dict | None) -> str:
-    """Parameterized-looking Cosmos SQL. ``k`` is an integer literal because TOP cannot be a parameter.
-    Filter values are not interpolated; callers bind them as ``@f0`` ... beside ``@vector``."""
+    """Cosmos SQL. ``k`` is an integer literal because TOP cannot be a parameter.
+    Non-null filter values are bound as ``@f0``; a null value is ``IS_NULL``, not the string None."""
     if not isinstance(k, int) or not 1 <= k <= 50:
         raise ValueError("k must be an integer from 1 to 50")
-    where = []
-    if flt:
-        for i, key in enumerate(sorted(flt)):
-            if key not in FILTER_FIELDS:
-                raise ValueError(f"unsupported filter field: {key}")
-            where.append(f"c.{key} = @f{i}")
+    where, _params = cosmos_filter(flt)
     clause = (" WHERE " + " AND ".join(where)) if where else ""
     return (f"SELECT TOP {k} c.chunk_id, c.doc_id, c.title, c.text, c.status, c.doc_type, c.district, c.topic, "
             f"VectorDistance(c.vector, @vector) AS score FROM c{clause} "
             "ORDER BY VectorDistance(c.vector, @vector)")
 
 
+def cosmos_filter(flt: dict | None) -> tuple[list[str], list[dict]]:
+    where, params = [], []
+    for key in _check_filter(flt):
+        if flt[key] is None:
+            where.append(f"(IS_NULL(c.{key}) OR NOT IS_DEFINED(c.{key}))")
+        else:
+            name = f"@f{len(params)}"
+            where.append(f"c.{key} = {name}")
+            params.append({"name": name, "value": flt[key]})
+    return where, params
+
+
 def pg_sql(k: int, flt: dict | None) -> str:
-    """pgvector query. Values are bound by the caller (``%s``), never interpolated."""
+    """pgvector query. Non-null values are ``%s`` bindings. A null value is ``IS NULL``."""
     if not isinstance(k, int) or not 1 <= k <= 50:
         raise ValueError("k must be an integer from 1 to 50")
-    where = []
-    if flt:
-        for key in sorted(flt):
-            if key not in FILTER_FIELDS:
-                raise ValueError(f"unsupported filter field: {key}")
-            where.append(f"{key} = %s")
+    where, _params = pg_filter(flt)
     clause = (" WHERE " + " AND ".join(where)) if where else ""
     return ("SELECT chunk_id, doc_id, title, text, status, doc_type, district, topic "
             f"FROM chunks{clause} ORDER BY embedding <=> %s::vector LIMIT %s")
+
+
+def pg_filter(flt: dict | None) -> tuple[list[str], list]:
+    where, params = [], []
+    for key in _check_filter(flt):
+        if flt[key] is None:
+            where.append(f"{key} IS NULL")
+        else:
+            where.append(f"{key} = %s")
+            params.append(flt[key])
+    return where, params
+
+
+def cosmos_items(chunks: list[dict], emb: np.ndarray) -> list[dict]:
+    """Items for the diskANN container. ``id`` is the Search-safe chunk id; ``doc_id`` is the partition key."""
+    from .azure_search import doc_key
+
+    items = []
+    for chunk, vector in zip(chunks, emb):
+        items.append({
+            "id": doc_key(chunk["chunk_id"]),
+            "chunk_id": chunk["chunk_id"],
+            "doc_id": chunk["doc_id"] or "company",
+            "title": chunk["title"],
+            "text": chunk["titled"],
+            "status": chunk["status"],
+            "doc_type": chunk["doc_type"],
+            "district": chunk["district"],
+            "topic": chunk["topic"],
+            "vector": [round(float(x), 6) for x in vector],
+        })
+    return items
 
 
 def live_store_env() -> dict[str, str | None]:
@@ -231,8 +273,11 @@ def odata_filter(flt: dict | None) -> str | None:
     for key in sorted(flt):
         if key not in FILTER_FIELDS:
             raise ValueError(f"unsupported filter field: {key}")
-        value = str(flt[key]).replace("'", "''")
-        parts.append(f"{key} eq '{value}'")
+        if flt[key] is None:
+            parts.append(f"{key} eq null")
+        else:
+            value = str(flt[key]).replace("'", "''")
+            parts.append(f"{key} eq '{value}'")
     return " and ".join(parts)
 
 
@@ -257,22 +302,39 @@ def live_search(kind: str, query_text: str, vector: list[float], k: int, flt: di
         sql = cosmos_query(k, flt)
         client = CosmosClient(env["cosmos_nosql"], credential=DefaultAzureCredential())
         container = client.get_database_client(os.environ["COSMOS_DATABASE"]).get_container_client(os.environ["COSMOS_CONTAINER"])
-        params = [{"name": "@vector", "value": vector}]
-        params += [{"name": f"@f{i}", "value": flt[key]} for i, key in enumerate(sorted(flt or {}))]
+        _where, bound = cosmos_filter(flt)
+        params = [{"name": "@vector", "value": vector}, *bound]
         return list(container.query_items(sql, parameters=params, enable_cross_partition_query=True))
     if kind == "pgvector":
         if not env["pgvector"]:
             raise RuntimeError("PGVECTOR_DSN is not set")
-        try:
-            import psycopg
-        except ImportError:
-            raise RuntimeError('pgvector live search needs psycopg. pip install -e ".[stores]"') from None
         sql = pg_sql(k, flt)
-        params = [flt[key] for key in sorted(flt or {})]
+        _where, params = pg_filter(flt)
         params.append("[" + ",".join(str(float(x)) for x in vector) + "]")
         params.append(k)
-        with psycopg.connect(env["pgvector"]) as conn, conn.cursor() as cur:
+        with pg_connect(env["pgvector"]) as conn, conn.cursor() as cur:
             cur.execute(sql, params)
             cols = [d[0] for d in cur.description]
             return [dict(zip(cols, row)) for row in cur.fetchall()]
     raise ValueError(f"unknown store {kind}")
+
+
+def postgres_entra_token() -> str:
+    """Access token for Azure Database for PostgreSQL. The server has password authentication off."""
+    try:
+        from azure.identity import DefaultAzureCredential
+    except ImportError:
+        raise RuntimeError('PGVECTOR_ENTRA=1 needs azure-identity. pip install -e ".[stores]"') from None
+    return DefaultAzureCredential().get_token("https://ossrdbms-aad.database.windows.net/.default").token
+
+
+def pg_connect(dsn: str):
+    """Open psycopg. ``PGVECTOR_ENTRA=1`` replaces the password with a fresh Entra token (the local
+    compose database leaves this unset and uses the DSN password)."""
+    try:
+        import psycopg
+    except ImportError:
+        raise RuntimeError('pgvector live search needs psycopg. pip install -e ".[stores]"') from None
+    if os.environ.get("PGVECTOR_ENTRA") == "1":
+        return psycopg.connect(dsn, password=postgres_entra_token(), sslmode="require")
+    return psycopg.connect(dsn)

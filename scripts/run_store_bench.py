@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from ragfail.reports import atomic_json  # noqa: E402
 from ragfail.store_bench import committed_view, run_store_bench, summary_lines  # noqa: E402
 
 OUT = ROOT / "results" / "vector_stores.json"
@@ -30,7 +31,7 @@ def main() -> int:
         print("vector store bench matches results/vector_stores.json")
         return 0
     if "--write" in sys.argv:
-        OUT.write_text(json.dumps(view, indent=2, sort_keys=True) + "\n")
+        atomic_json(OUT, view)
     print("\n".join(summary_lines(report)))
     return 0
 

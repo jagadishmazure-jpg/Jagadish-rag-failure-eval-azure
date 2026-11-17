@@ -32,6 +32,18 @@ def test_keys_and_passwords_stay_off():
     assert "administratorLoginPassword" not in BICEP
 
 
+def test_deploy_identity_can_administer_and_query():
+    for text in (TF, BICEP):
+        assert "ServicePrincipal" in text
+        assert "allow-azure-services" in text
+        assert "0.0.0.0" in text
+    assert 'role_definition_name = "Search Index Data Contributor"' in TF
+    assert "8ebe5a00-799e-43f5-93ac-243d3dce84db" in BICEP
+    assert "00000000-0000-0000-0000-000000000002" in TF and "00000000-0000-0000-0000-000000000002" in BICEP
+    assert 'principal_type      = "User"' not in TF
+    assert "principalType: 'User'" not in BICEP
+
+
 def test_semantic_ranker_and_pgvector_extension():
     assert 'semantic_search_sku           = "free"' in TF
     assert "semanticSearch: 'free'" in BICEP

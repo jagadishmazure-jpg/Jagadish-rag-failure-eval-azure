@@ -14,6 +14,19 @@ from ragfail.self_rag import _supported
 ROOT_RESULTS = data.ROOT / "results" / "advanced_rag.json"
 
 
+def test_offline_rewrites_match_the_deterministic_helpers_and_agentic_references_parse():
+    from ragfail.agentic_search import chunks_from_agentic
+    from ragfail.query_rewrite import hyde_document, live_rewrites, offline_rewrites
+
+    q = "How fast do we have to get someone out to a burst main in Quillby?"
+    assert live_rewrites(q, "hyde") == [hyde_document(q)]
+    assert offline_rewrites(q, "step_back")[0] == q
+    rows = chunks_from_agentic({"references": [{"id": "a", "content": "within 1 hours", "title": "Leak"}]}, 3)
+    assert rows[0]["chunk_id"] == "a" and rows[0]["text"] == "within 1 hours"
+    with pytest.raises(RuntimeError):
+        chunks_from_agentic({"references": []}, 3)
+
+
 def test_rewrites_are_deterministic_and_keep_the_district():
     q = "How fast do we have to get someone out to a burst main in Quillby?"
     assert detect_district(q) == "Quillby"

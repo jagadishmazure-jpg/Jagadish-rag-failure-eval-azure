@@ -101,7 +101,9 @@ def search(endpoint: str, question: str, k: int = 3, query_vector: list[float] |
 
     body = query_body(question, query_vector, guards=guards, filter_expr=filter_expr)
     client = SearchClient(endpoint, INDEX, DefaultAzureCredential())
-    hits = list(client.search(search_text=body["search"], top=min(k, body["top"]), query_type=body["queryType"],
+    # Fetch the candidate pool (body["top"]) before the policy-first reorder. Cutting to k first
+    # would drop a policy that ranked behind an FAQ and could not be promoted back.
+    hits = list(client.search(search_text=body["search"], top=body["top"], query_type=body["queryType"],
                               semantic_configuration_name=body["semanticConfiguration"], filter=body.get("filter"),
                               select=body["select"].split(","), vector_queries=body.get("vectorQueries")))
     rows = [{**h, "titled": h["text"]} for h in hits]
