@@ -125,17 +125,17 @@ def selection_guide(report: dict) -> str:
     return "\n".join([
         "Store ids: azure_ai_search, cosmos_nosql, pgvector. memory is the free baseline and is not a deployment choice.",
         f"Policy-filtered recall@3 spread across the three Azure stores on this mock: {spread:.4f}.",
-        f"Among stores within 0.01 of the best policy-filtered recall ({best:.4f}), "
-        f"the lowest estimated monthly cost is {pick['store']} at ${pick['usd_month']:.2f} ({pick['sku']}).",
-        "The mock searches exact cosine, so Cosmos DB (diskANN) and pgvector (HNSW) are not showing "
-        "approximate-index loss. Re-measure recall@k and service p95 with COSMOS_ENDPOINT, PGVECTOR_DSN "
-        "and AZURE_SEARCH_ENDPOINT before choosing.",
-        "Choose Azure AI Search when the workload needs hybrid keyword plus vector plus the semantic "
-        "ranker, or the guarded retrieval service is already pointed at it.",
-        "Choose Azure Cosmos DB for NoSQL when the documents already live as items and the filter must "
-        "sit in the same VectorDistance query.",
-        "Choose Azure Database for PostgreSQL with pgvector when you want SQL predicates and joins, "
-        "the lowest always-on estimate in this table, and a local docker-compose database for development.",
-        "In-process p95 is measured and returned as p95_ms. It is machine-local and is not a service latency. "
-        "Live service p95 is not measured.",
+        (f"Among stores within 0.01 of the best policy-filtered recall ({best:.4f}), "
+         f"the lowest estimated monthly cost is {pick['store']} at ${pick['usd_month']:.2f} ({pick['sku']})."),
+        ("The mock searches exact cosine, so Cosmos DB (diskANN) and pgvector (HNSW) are not showing "
+         "approximate-index loss. Re-measure recall@k and service p95 with COSMOS_ENDPOINT, PGVECTOR_DSN "
+         "and AZURE_SEARCH_ENDPOINT before choosing."),
+        ("Choose Azure AI Search when the workload needs hybrid keyword plus vector plus the semantic "
+         "ranker, or the guarded retrieval service is already pointed at it."),
+        ("Choose Azure Cosmos DB for NoSQL when the documents already live as items and the filter must "
+         "sit in the same VectorDistance query."),
+        ("Choose Azure Database for PostgreSQL with pgvector when you want SQL predicates and joins, "
+         "the lowest always-on estimate in this table, and a local docker-compose database for development."),
+        ("In-process p95 is measured and returned as p95_ms. It is machine-local and is not a service latency. "
+         "Live service p95 is not measured."),
     ])

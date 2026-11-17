@@ -146,8 +146,8 @@ def run_advanced(strategies: tuple[str, ...] = STRATEGIES, *, ragas_eval=None, a
 
 def summary_lines(report: dict) -> list[str]:
     lines = [
-        "mode: mock. Judges: RAGAS and Azure AI Evaluation metric names, scored by code. "
-        "Set RAGFAIL_LIVE_JUDGES=1 (and install the [judges] extra) to call the libraries.",
+        ("mode: mock. Judges: RAGAS and Azure AI Evaluation metric names, scored by code. "
+         "Set RAGFAIL_LIVE_JUDGES=1 (and install the [judges] extra) to call the libraries."),
         f"questions: {report['questions']}. Reader: extractive. k={report['k']}.",
         "",
         f"{'strategy':<16} {'accuracy':>8} {'abstain':>8} {'faith':>8} {'ctx_rec':>8} {'ctx_prec':>8} {'stale':>8}  top_failure",
@@ -165,10 +165,10 @@ def summary_lines(report: dict) -> list[str]:
     g, v = report["strategies"].get("graphrag"), report["strategies"].get("vector")
     if g and v:
         lines += ["",
-                  f"GraphRAG context_recall {g['judge']['context_recall']:.4f} "
-                  f"(local {report['graphrag_routes'].get('local', 0)}, "
-                  f"vector fallback {report['graphrag_routes'].get('vector_fallback', 0)}) "
-                  f"vs vector RAG {v['judge']['context_recall']:.4f}."]
+                  (f"GraphRAG context_recall {g['judge']['context_recall']:.4f} "
+                   f"(local {report['graphrag_routes'].get('local', 0)}, "
+                   f"vector fallback {report['graphrag_routes'].get('vector_fallback', 0)}) "
+                   f"vs vector RAG {v['judge']['context_recall']:.4f}.")]
     if "self_rag" in report["strategies"]:
         lines.append(f"Self-RAG questions with a critique retry: {report['self_rag_retries']}.")
     if "agentic" in report["strategies"]:
