@@ -1,0 +1,195 @@
+{
+  "arms": {
+    "finetune": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0,
+          0.1072
+        ],
+        "k": 0,
+        "n": 32,
+        "rate": 0.0
+      },
+      "accuracy": {
+        "ci95": [
+          0.2385,
+          0.3845
+        ],
+        "k": 46,
+        "n": 150,
+        "rate": 0.3067
+      },
+      "citation_ok": {
+        "ci95": [
+          0.0,
+          0.025
+        ],
+        "k": 0,
+        "n": 150,
+        "rate": 0.0
+      },
+      "judge": {
+        "answer_relevancy": 0.2527,
+        "context_precision": 0.0,
+        "context_recall": 0.0,
+        "faithfulness": 0.0,
+        "groundedness": 0.0,
+        "relevance": 0.2527,
+        "retrieval": 0.0
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.5584,
+          0.7756
+        ],
+        "k": 46,
+        "n": 68,
+        "rate": 0.6765
+      },
+      "taxonomy": {
+        "citation_mismatch": 46,
+        "correct": 0,
+        "correct_abstain": 0,
+        "false_abstain": 0,
+        "injection_followed": 0,
+        "missed_abstain": 32,
+        "reader_error": 0,
+        "retrieval_miss": 0,
+        "stale_or_conflict": 46,
+        "ungrounded": 58,
+        "wrong_chunk": 0
+      }
+    },
+    "raft": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0173,
+          0.2015
+        ],
+        "k": 2,
+        "n": 32,
+        "rate": 0.0625
+      },
+      "accuracy": {
+        "ci95": [
+          0.7216,
+          0.8504
+        ],
+        "k": 119,
+        "n": 150,
+        "rate": 0.7933
+      },
+      "citation_ok": {
+        "ci95": [
+          0.8338,
+          0.9333
+        ],
+        "k": 134,
+        "n": 150,
+        "rate": 0.8933
+      },
+      "judge": {
+        "answer_relevancy": 0.6669,
+        "context_precision": 0.6311,
+        "context_recall": 0.98,
+        "faithfulness": 1.0,
+        "groundedness": 1.0,
+        "relevance": 0.6669,
+        "retrieval": 0.98
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "taxonomy": {
+        "citation_mismatch": 0,
+        "correct": 119,
+        "correct_abstain": 2,
+        "false_abstain": 5,
+        "injection_followed": 0,
+        "missed_abstain": 30,
+        "reader_error": 23,
+        "retrieval_miss": 3,
+        "stale_or_conflict": 0,
+        "ungrounded": 0,
+        "wrong_chunk": 0
+      }
+    },
+    "rag": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0173,
+          0.2015
+        ],
+        "k": 2,
+        "n": 32,
+        "rate": 0.0625
+      },
+      "accuracy": {
+        "ci95": [
+          0.7216,
+          0.8504
+        ],
+        "k": 119,
+        "n": 150,
+        "rate": 0.7933
+      },
+      "citation_ok": {
+        "ci95": [
+          0.8338,
+          0.9333
+        ],
+        "k": 134,
+        "n": 150,
+        "rate": 0.8933
+      },
+      "judge": {
+        "answer_relevancy": 0.6669,
+        "context_precision": 0.3267,
+        "context_recall": 0.98,
+        "faithfulness": 1.0,
+        "groundedness": 1.0,
+        "relevance": 0.6669,
+        "retrieval": 0.98
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "taxonomy": {
+        "citation_mismatch": 0,
+        "correct": 119,
+        "correct_abstain": 2,
+        "false_abstain": 5,
+        "injection_followed": 0,
+        "missed_abstain": 30,
+        "reader_error": 23,
+        "retrieval_miss": 2,
+        "stale_or_conflict": 0,
+        "ungrounded": 0,
+        "wrong_chunk": 1
+      }
+    }
+  },
+  "decision": "Unanswerable questions: the fine-tuned arm abstains less often than RAG. Prefer RAG or RAFT when staff can ask for something the corpus does not contain. Policy changes: the fine-tuned arm repeats superseded numbers it was trained on. Prefer RAG with the metadata guard when a fact can change after training. RAFT matches guarded RAG here. The district filter dropped 157 distractor chunks, and the metadata guard had already removed superseded text, so the score did not move. Prefer plain RAG until a trained reader has to face distractors the guard does not catch. Citations: a fine-tuned answer has no passage, so a correct number is citation_mismatch in the taxonomy. Use that arm only when a citation is not required. Point FINETUNE_ENDPOINT at a served QLoRA adapter to replace the mock fine-tune and RAFT answers. Live rows are not measured.",
+  "distractors_dropped": 157,
+  "finetune_description": "Mock QLoRA adapter. Trained facts are answered from memory. Facts with a superseded value were learned from the old number. Held-out and unanswerable questions return 9999.",
+  "held_out_facts": 29,
+  "judge_scale": "unit",
+  "mode": "mock",
+  "questions": 182,
+  "train_facts": 46
+}

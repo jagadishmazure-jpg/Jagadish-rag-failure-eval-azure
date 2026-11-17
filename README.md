@@ -21,7 +21,7 @@ into a single failure category.
   conflicting values make up 50.0%<!-- m:generation/no_guards/stale_answers/rate --> of answers on those
   questions, and accuracy falls to 64.0%<!-- m:generation/no_guards/accuracy/rate -->. The weakest spot is
   abstention: the main setup says "not found" on only 78.1%<!-- m:generation/main/abstain_when_unanswerable/rate -->
-  of unanswerable questions. <!-- tests -->75<!-- /tests --> tests, CI green.
+  of unanswerable questions. <!-- tests -->104<!-- /tests --> tests, CI green.
 
 ## Purpose and who it is for
 
@@ -181,6 +181,9 @@ python -m pytest -q                        # tests
 python scripts/run_eval.py                 # all metrics -> results/
 python examples/failure_demo.py            # four failure modes, real answers
 python -m ragfail.service "What is the late payment fee in Tarnwick?"   # guarded retrieval (BM25)
+python scripts/run_advanced_bench.py --summary   # HyDE, Self-RAG, agentic, GraphRAG (mock)
+python scripts/run_store_bench.py --summary      # Search vs Cosmos DB vs pgvector (mock)
+python scripts/run_adaptation.py --summary       # RAG vs fine-tune vs RAFT (mock)
 ```
 
 Re-measure (optional; about 1.6 GB of Apache-2.0 reader weights plus about 130 MB of embedding and
@@ -196,6 +199,94 @@ bash scripts/fetch_models.sh && python scripts/run_reader.py
 Optional cloud: Azure AI Search plus a Microsoft Foundry / Azure ML managed online endpoint, in Terraform
 and Bicep, gated off. See [docs/deployment.md](docs/deployment.md) for the resource list and a dated cost
 estimate (about $157 a month if turned on).
+
+## Advanced RAG, vector stores, RAG vs fine-tuning
+
+Three benches sit on the same corpus and the same failure taxonomy. They default to deterministic
+stand-ins so CI stays offline. Live Azure runs only when the variables in
+[docs/deployment.md](docs/deployment.md) are set. The tables below are the mock run. Live columns are
+not measured yet.
+
+### Advanced RAG
+
+HyDE, multi-query, step-back, query decomposition, a Self-RAG critique loop, Azure AI Search agentic
+retrieval (hybrid + semantic ranker) and GraphRAG local search against dense vector RAG. Scores are
+the taxonomy plus the RAGAS and Azure AI Evaluation metric names (code proxy unless
+`RAGFAIL_LIVE_JUDGES=1`). Details: [docs/advanced-rag.md](docs/advanced-rag.md).
+
+<!-- run: python scripts/run_advanced_bench.py --summary -->
+```text
+mode: mock. Judges: RAGAS and Azure AI Evaluation metric names, scored by code. Set RAGFAIL_LIVE_JUDGES=1 (and install the [judges] extra) to call the libraries.
+questions: 182. Reader: extractive. k=3.
+
+strategy         accuracy  abstain    faith  ctx_rec ctx_prec    stale  top_failure
+hybrid_rerank      0.7933   0.0625   1.0000   0.9800   0.3267   0.0000  missed_abstain (30)
+hyde               0.7533   0.0938   1.0000   0.9000   0.3000   0.0000  missed_abstain (29)
+multi_query        0.7667   0.0625   1.0000   0.9067   0.3022   0.0000  missed_abstain (30)
+step_back          0.7533   0.0938   1.0000   0.9467   0.3156   0.0000  missed_abstain (29)
+decomposition      0.7333   0.0625   1.0000   0.9333   0.3111   0.0000  missed_abstain (30)
+self_rag           0.7933   0.0625   1.0000   0.9800   0.3267   0.0000  missed_abstain (30)
+agentic            0.7933   0.0625   1.0000   0.9800   0.3267   0.0000  missed_abstain (30)
+graphrag           0.7600   0.0625   1.0000   0.9733   0.4467   0.0000  missed_abstain (30)
+vector             0.7533   0.0625   1.0000   0.9000   0.3000   0.0000  missed_abstain (30)
+
+GraphRAG context_recall 0.9733 (local 176, vector fallback 6) vs vector RAG 0.9000.
+Self-RAG questions with a critique retry: 8.
+Agentic retrieval: offline planner + hybrid + cross-encoder stand-in for the semantic ranker. Live: AZURE_SEARCH_ENDPOINT and AZURE_SEARCH_KNOWLEDGE_BASE.
+Live Azure columns for this bench are not measured yet.
+```
+<!-- /run -->
+
+### Vector stores
+
+A pluggable store layer benchmarks in-memory cosine, Azure AI Search, Cosmos DB for NoSQL and
+PostgreSQL with pgvector on recall@k, metadata filters and estimated monthly cost. In-process p95 is
+measured and left out of the committed table because it depends on the machine. IaC for the three
+Azure stores is `infra/vectorstores` (Terraform and Bicep, written, not run). A laptop pgvector is
+`docker compose up -d`. Selection guide: [docs/vector-store-guide.md](docs/vector-store-guide.md).
+
+<!-- run: python scripts/run_store_bench.py --summary -->
+```text
+mode: mock. Exact cosine in-process, except Azure AI Search which also fuses BM25 and the committed cross-encoder.
+p95_ms is measured around the in-process call and is not printed here (it depends on the machine).
+Live service p95 and live recall: not measured. Set AZURE_SEARCH_ENDPOINT, COSMOS_ENDPOINT or PGVECTOR_DSN.
+
+store            recall@3   status   policy stale_off stale_pol      usd
+memory             0.8733   0.8867   0.9000    0.9118    0.0000     0.00
+azure_ai_search    0.9733   0.9733   0.9800    0.9559    0.0000    73.73
+cosmos_nosql       0.8733   0.8867   0.9000    0.9118    0.0000    23.61
+pgvector           0.8733   0.8867   0.9000    0.9118    0.0000    16.09
+
+Store ids: azure_ai_search, cosmos_nosql, pgvector. memory is the free baseline and is not a deployment choice.
+Policy-filtered recall@3 spread across the three Azure stores on this mock: 0.0800.
+Among stores within 0.01 of the best policy-filtered recall (0.9800), the lowest estimated monthly cost is azure_ai_search at $73.73 (basic, 1 replica, semantic ranker free).
+The mock searches exact cosine, so Cosmos DB (diskANN) and pgvector (HNSW) are not showing approximate-index loss. Re-measure recall@k and service p95 with COSMOS_ENDPOINT, PGVECTOR_DSN and AZURE_SEARCH_ENDPOINT before choosing.
+Choose Azure AI Search when the workload needs hybrid keyword plus vector plus the semantic ranker, or the guarded retrieval service is already pointed at it.
+Choose Azure Cosmos DB for NoSQL when the documents already live as items and the filter must sit in the same VectorDistance query.
+Choose Azure Database for PostgreSQL with pgvector when you want SQL predicates and joins, the lowest always-on estimate in this table, and a local docker-compose database for development.
+In-process p95 is measured and returned as p95_ms. It is machine-local and is not a service latency. Live service p95 is not measured.
+```
+<!-- /run -->
+
+### RAG vs fine-tuning
+
+RAG, a mock QLoRA-style adapter (`FINETUNE_ENDPOINT` to use a real one), and RAFT (retrieve, then the
+adapter or the district-filtered reader). Decision guide:
+[docs/rag-vs-finetune.md](docs/rag-vs-finetune.md).
+
+<!-- run: python scripts/run_adaptation.py --summary -->
+```text
+mode: mock. Train facts: 46. Held-out facts: 29.
+Mock QLoRA adapter. Trained facts are answered from memory. Facts with a superseded value were learned from the old number. Held-out and unanswerable questions return 9999.
+
+arm        accuracy  abstain    stale    cited  top_failure
+rag          0.7933   0.0625   0.0000   0.8933  missed_abstain (30)
+finetune     0.3067   0.0000   0.6765   0.0000  ungrounded (58)
+raft         0.7933   0.0625   0.0000   0.8933  missed_abstain (30)
+
+Unanswerable questions: the fine-tuned arm abstains less often than RAG. Prefer RAG or RAFT when staff can ask for something the corpus does not contain. Policy changes: the fine-tuned arm repeats superseded numbers it was trained on. Prefer RAG with the metadata guard when a fact can change after training. RAFT matches guarded RAG here. The district filter dropped 157 distractor chunks, and the metadata guard had already removed superseded text, so the score did not move. Prefer plain RAG until a trained reader has to face distractors the guard does not catch. Citations: a fine-tuned answer has no passage, so a correct number is citation_mismatch in the taxonomy. Use that arm only when a citation is not required. Point FINETUNE_ENDPOINT at a served QLoRA adapter to replace the mock fine-tune and RAFT answers. Live rows are not measured.
+```
+<!-- /run -->
 
 ## Guardrails and security controls
 
@@ -224,8 +315,10 @@ Threat model (STRIDE and OWASP LLM Top 10): [docs/threat-model.md](docs/threat-m
 - The metadata guard is only as good as the metadata. A wrong `status` field defeats it.
 - Short synthetic documents, numeric answers, English, small models, 182 questions. Two phrasings per
   fact are correlated. The numbers describe this corpus, not RAG in general.
-- The Azure path (Azure AI Search + endpoint) is written and unit-tested offline, but it has not been
-  run, so cloud results are not measured.
+- The Azure path (Azure AI Search + endpoint, the vector-store stack, agentic retrieval, RAGAS, the
+  Azure AI Evaluation SDK, and a served fine-tune) is written and unit-tested offline, but it has not
+  been run, so cloud results are not measured. The new benches publish the mock table and leave live
+  cells as "not measured".
 
 ## Built vs planned
 
@@ -238,6 +331,9 @@ Threat model (STRIDE and OWASP LLM Top 10): [docs/threat-model.md](docs/threat-m
 | Metadata guards, instruction filter, guarded prompt, CI regression gate | Built |
 | Guarded retrieval service, CLI, Azure ML scoring script, Azure AI Search index mapping (tested offline) | Built |
 | Terraform + Bicep for Azure AI Search and a Microsoft Foundry / Azure ML endpoint, index and deploy workflow | Written, not run (gated off) |
+| Advanced RAG bench: HyDE, multi-query, step-back, decomposition, Self-RAG, agentic retrieval, GraphRAG vs vector, RAGAS + Azure AI Evaluation names | Mock measured, live Azure not run |
+| Pluggable vector stores and a mock benchmark of Azure AI Search, Cosmos DB for NoSQL and PostgreSQL pgvector, plus IaC and a local compose file | Mock measured, live Azure not run |
+| RAG vs fine-tuning vs RAFT harness and a decision guide | Mock measured, live adapter not run |
 | Running the same eval against the cloud pipeline; query-time vectors in the endpoint | Planned |
 | Open-ended answers with a calibrated judge, larger readers, other languages | Planned |
 
@@ -247,6 +343,7 @@ Threat model (STRIDE and OWASP LLM Top 10): [docs/threat-model.md](docs/threat-m
 - [Implementation guide](docs/implementation-guide.md) for teams adopting this
 - [Interview points](docs/interview-points.md)
 - [Threat model](docs/threat-model.md), [deployment](docs/deployment.md), [ADRs](docs/adr/)
+- [Advanced RAG](docs/advanced-rag.md), [vector store guide](docs/vector-store-guide.md), [RAG vs fine-tuning](docs/rag-vs-finetune.md)
 
 ## Related repos
 

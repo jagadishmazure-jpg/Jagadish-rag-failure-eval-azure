@@ -77,3 +77,52 @@ jobs:
           az ml online-endpoint invoke -g rg-ragfx-dev -w mlw-ragfx-dev -n ep-ragfx-dev -r req.json | tee out.json
           grep -q '"instructions_stripped": [1-9]' out.json
           ! grep -q 'tessmoor-release.example' out.json
+
+  vectorstores:
+    needs: preflight
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TOOL: ${{ inputs.deploy_tool }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with: { terraform_version: "1.16.4", terraform_wrapper: false }
+      - uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Provision the three vector stores (Search, Cosmos DB, PostgreSQL)
+        # State stays on the runner, the same as the main deploy job. This stack does not create a
+        # storage account, so a remote backend would need one that already exists. A second apply
+        # needs the state from the first run. CI validates with -backend=false and does not apply.
+        env:
+          TF_VAR_entra_admin_name: ${{ vars.AZURE_CLIENT_ID }}
+        run: |
+          if [[ "$TOOL" == "bicep" ]]; then
+            az group create -n rg-ragvec-dev -l eastus2
+            az deployment group create -g rg-ragvec-dev -f infra/vectorstores/bicep/main.bicep -p infra/vectorstores/bicep/main.parameters.json entraAdminName="${{ vars.AZURE_CLIENT_ID }}"
+          else
+            terraform -chdir=infra/vectorstores/terraform init -input=false
+            terraform -chdir=infra/vectorstores/terraform apply -input=false -auto-approve -var-file=envs/dev.tfvars
+          fi
+      - name: Load the benchmark corpus into the three stores
+        env:
+          AZURE_SEARCH_ENDPOINT: https://srch-ragvec-dev.search.windows.net
+          COSMOS_ENDPOINT: https://cosmosragvecdev.documents.azure.com:443/
+          COSMOS_DATABASE: tessmoor
+          COSMOS_CONTAINER: chunks
+          PGVECTOR_ENTRA: "1"
+          PGVECTOR_DSN: postgresql://${{ vars.AZURE_CLIENT_ID }}@psql-ragvec-dev.postgres.database.azure.com/tessmoor?sslmode=require
+        run: |
+          pip install -r requirements.txt azure-search-documents==12.0.0 azure-identity==1.27.0 'azure-cosmos>=4.7.0' 'psycopg[binary]>=3.2.0'
+          python scripts/load_vectorstores.py

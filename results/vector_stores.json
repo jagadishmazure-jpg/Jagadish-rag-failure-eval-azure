@@ -1,0 +1,307 @@
+{
+  "k": 3,
+  "live_placeholders": {
+    "azure_ai_search": "not measured",
+    "cosmos_nosql": "not measured",
+    "pgvector": "not measured"
+  },
+  "mode": "mock",
+  "questions_answerable": 150,
+  "stores": [
+    {
+      "ann": "exact",
+      "cost_breakdown": {
+        "compute": 0.0
+      },
+      "district_filter_ok": {
+        "ci95": [
+          0.9733,
+          1.0
+        ],
+        "k": 140,
+        "n": 140,
+        "rate": 1.0
+      },
+      "live": false,
+      "recall@3": {
+        "ci95": [
+          0.8106,
+          0.9174
+        ],
+        "k": 131,
+        "n": 150,
+        "rate": 0.8733
+      },
+      "recall@3_filtered": {
+        "ci95": [
+          0.826,
+          0.928
+        ],
+        "k": 133,
+        "n": 150,
+        "rate": 0.8867
+      },
+      "recall@3_policy_filtered": {
+        "ci95": [
+          0.8416,
+          0.9385
+        ],
+        "k": 135,
+        "n": 150,
+        "rate": 0.9
+      },
+      "sku": "in-process",
+      "stale_in_top3": {
+        "ci95": [
+          0.8206,
+          0.9589
+        ],
+        "k": 62,
+        "n": 68,
+        "rate": 0.9118
+      },
+      "stale_in_top3_policy_filter": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "stale_in_top3_status_filter": {
+        "ci95": [
+          0.2893,
+          0.5158
+        ],
+        "k": 27,
+        "n": 68,
+        "rate": 0.3971
+      },
+      "store": "memory",
+      "usd_month": 0.0
+    },
+    {
+      "ann": "exact+bm25+cross-encoder",
+      "cost_breakdown": {
+        "search_basic": 73.73,
+        "semantic_ranker": 0.0
+      },
+      "district_filter_ok": {
+        "ci95": [
+          0.9733,
+          1.0
+        ],
+        "k": 140,
+        "n": 140,
+        "rate": 1.0
+      },
+      "live": false,
+      "recall@3": {
+        "ci95": [
+          0.9334,
+          0.9896
+        ],
+        "k": 146,
+        "n": 150,
+        "rate": 0.9733
+      },
+      "recall@3_filtered": {
+        "ci95": [
+          0.9334,
+          0.9896
+        ],
+        "k": 146,
+        "n": 150,
+        "rate": 0.9733
+      },
+      "recall@3_policy_filtered": {
+        "ci95": [
+          0.9429,
+          0.9932
+        ],
+        "k": 147,
+        "n": 150,
+        "rate": 0.98
+      },
+      "sku": "basic, 1 replica, semantic ranker free",
+      "stale_in_top3": {
+        "ci95": [
+          0.8781,
+          0.9849
+        ],
+        "k": 65,
+        "n": 68,
+        "rate": 0.9559
+      },
+      "stale_in_top3_policy_filter": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "stale_in_top3_status_filter": {
+        "ci95": [
+          0.316,
+          0.5448
+        ],
+        "k": 29,
+        "n": 68,
+        "rate": 0.4265
+      },
+      "store": "azure_ai_search",
+      "usd_month": 73.73
+    },
+    {
+      "ann": "exact (live IaC: diskANN)",
+      "cost_breakdown": {
+        "storage": 0.25,
+        "throughput": 23.36
+      },
+      "district_filter_ok": {
+        "ci95": [
+          0.9733,
+          1.0
+        ],
+        "k": 140,
+        "n": 140,
+        "rate": 1.0
+      },
+      "live": false,
+      "recall@3": {
+        "ci95": [
+          0.8106,
+          0.9174
+        ],
+        "k": 131,
+        "n": 150,
+        "rate": 0.8733
+      },
+      "recall@3_filtered": {
+        "ci95": [
+          0.826,
+          0.928
+        ],
+        "k": 133,
+        "n": 150,
+        "rate": 0.8867
+      },
+      "recall@3_policy_filtered": {
+        "ci95": [
+          0.8416,
+          0.9385
+        ],
+        "k": 135,
+        "n": 150,
+        "rate": 0.9
+      },
+      "sku": "provisioned 400 RU/s, diskANN",
+      "stale_in_top3": {
+        "ci95": [
+          0.8206,
+          0.9589
+        ],
+        "k": 62,
+        "n": 68,
+        "rate": 0.9118
+      },
+      "stale_in_top3_policy_filter": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "stale_in_top3_status_filter": {
+        "ci95": [
+          0.2893,
+          0.5158
+        ],
+        "k": 27,
+        "n": 68,
+        "rate": 0.3971
+      },
+      "store": "cosmos_nosql",
+      "usd_month": 23.61
+    },
+    {
+      "ann": "exact (live: HNSW cosine)",
+      "cost_breakdown": {
+        "compute": 12.41,
+        "storage": 3.68
+      },
+      "district_filter_ok": {
+        "ci95": [
+          0.9733,
+          1.0
+        ],
+        "k": 140,
+        "n": 140,
+        "rate": 1.0
+      },
+      "live": false,
+      "recall@3": {
+        "ci95": [
+          0.8106,
+          0.9174
+        ],
+        "k": 131,
+        "n": 150,
+        "rate": 0.8733
+      },
+      "recall@3_filtered": {
+        "ci95": [
+          0.826,
+          0.928
+        ],
+        "k": 133,
+        "n": 150,
+        "rate": 0.8867
+      },
+      "recall@3_policy_filtered": {
+        "ci95": [
+          0.8416,
+          0.9385
+        ],
+        "k": 135,
+        "n": 150,
+        "rate": 0.9
+      },
+      "sku": "Flexible Server B1ms, 32 GiB, pgvector HNSW",
+      "stale_in_top3": {
+        "ci95": [
+          0.8206,
+          0.9589
+        ],
+        "k": 62,
+        "n": 68,
+        "rate": 0.9118
+      },
+      "stale_in_top3_policy_filter": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "stale_in_top3_status_filter": {
+        "ci95": [
+          0.2893,
+          0.5158
+        ],
+        "k": 27,
+        "n": 68,
+        "rate": 0.3971
+      },
+      "store": "pgvector",
+      "usd_month": 16.09
+    }
+  ]
+}

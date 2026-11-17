@@ -37,6 +37,8 @@ category, so each fix has an owner.
 
 **What I would do next**
 
+- Run the advanced RAG bench, the vector-store benchmark and the fine-tune endpoint against Azure.
+  The offline stand-ins and the IaC are in the repo; the live numbers are not.
 - Run the same questions against the Azure AI Search + Foundry pipeline that the IaC describes.
 - Attack harder: more injection styles, injections in titles, and a reader that is known to follow them.
 - Open-ended answers scored by a judge calibrated against human labels.

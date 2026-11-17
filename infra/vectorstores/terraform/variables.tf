@@ -1,0 +1,40 @@
+variable "env" {
+  description = "Environment name (dev or prod)."
+  type        = string
+  validation {
+    condition     = contains(["dev", "prod"], var.env)
+    error_message = "env must be dev or prod."
+  }
+}
+
+variable "location" {
+  description = "Azure region."
+  type        = string
+  default     = "eastus2"
+}
+
+variable "prefix" {
+  description = "Short lowercase name prefix (3-10 letters or digits)."
+  type        = string
+  default     = "ragvec"
+  validation {
+    condition     = can(regex("^[a-z0-9]{3,10}$", var.prefix))
+    error_message = "prefix must be 3-10 lowercase letters or digits."
+  }
+}
+
+variable "entra_admin_name" {
+  description = "Display name or client id of the Entra service principal that administers PostgreSQL. The deploy workflow passes the OIDC app client id."
+  type        = string
+  default     = "rag-failure-eval"
+}
+
+variable "tags" {
+  description = "Tags on every resource."
+  type        = map(string)
+  default = {
+    workload = "rag-vector-stores"
+    owner    = "ops-platform"
+    data     = "synthetic"
+  }
+}

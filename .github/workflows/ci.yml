@@ -63,7 +63,20 @@ jobs:
       - name: checkov
         run: pip install --quiet checkov==3.3.20 && checkov -d "$STACK" --config-file .checkov.yaml
       - name: bicep build
-        run: az bicep install && az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
+        run: |
+          az bicep install
+          az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
+          az bicep build --file infra/vectorstores/bicep/main.bicep --stdout > /dev/null
+      - name: vectorstores terraform fmt / init / validate / test
+        run: |
+          terraform -chdir=infra/vectorstores/terraform fmt -check -recursive -diff
+          terraform -chdir=infra/vectorstores/terraform init -backend=false -input=false
+          terraform -chdir=infra/vectorstores/terraform validate
+          terraform -chdir=infra/vectorstores/terraform test
+      - name: tflint vectorstores
+        working-directory: infra/vectorstores/terraform
+        env: { GITHUB_TOKEN: "${{ github.token }}" }
+        run: tflint --init && tflint --format compact
 
   secrets:
     # gitleaks over the full git history. Known false positives (public role IDs, synthetic

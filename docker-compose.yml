@@ -1,0 +1,22 @@
+# Local PostgreSQL with pgvector for the vector-store bench.
+# The port is bound to localhost. The password is not stored in this file:
+#   export PGVECTOR_PASSWORD=...
+#   docker compose up -d
+#   PGVECTOR_DSN=postgresql://tessmoor:${PGVECTOR_PASSWORD}@127.0.0.1:5432/tessmoor
+# The Azure server in infra/vectorstores disables password auth and uses an Entra token.
+services:
+  pgvector:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: tessmoor
+      POSTGRES_PASSWORD: ${PGVECTOR_PASSWORD:?set PGVECTOR_PASSWORD}
+      POSTGRES_DB: tessmoor
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./infra/pgvector/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tessmoor -d tessmoor"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

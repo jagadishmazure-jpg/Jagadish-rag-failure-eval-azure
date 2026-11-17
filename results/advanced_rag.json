@@ -1,0 +1,495 @@
+{
+  "failure_categories": [
+    "correct",
+    "correct_abstain",
+    "injection_followed",
+    "citation_mismatch",
+    "false_abstain",
+    "retrieval_miss",
+    "stale_or_conflict",
+    "wrong_chunk",
+    "ungrounded",
+    "reader_error",
+    "missed_abstain"
+  ],
+  "graphrag_routes": {
+    "local": 176,
+    "vector_fallback": 6
+  },
+  "judge_scale": "unit",
+  "k": 3,
+  "mode": "mock",
+  "questions": 182,
+  "reader": "extractive",
+  "self_rag_retries": 8,
+  "strategies": {
+    "agentic": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0173,
+          0.2015
+        ],
+        "k": 2,
+        "n": 32,
+        "rate": 0.0625
+      },
+      "accuracy": {
+        "ci95": [
+          0.7216,
+          0.8504
+        ],
+        "k": 119,
+        "n": 150,
+        "rate": 0.7933
+      },
+      "judge": {
+        "answer_relevancy": 0.6669,
+        "context_precision": 0.3267,
+        "context_recall": 0.98,
+        "faithfulness": 1.0,
+        "groundedness": 1.0,
+        "relevance": 0.6669,
+        "retrieval": 0.98
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "taxonomy": {
+        "citation_mismatch": 0,
+        "correct": 119,
+        "correct_abstain": 2,
+        "false_abstain": 5,
+        "injection_followed": 0,
+        "missed_abstain": 30,
+        "reader_error": 23,
+        "retrieval_miss": 2,
+        "stale_or_conflict": 0,
+        "ungrounded": 0,
+        "wrong_chunk": 1
+      }
+    },
+    "decomposition": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0173,
+          0.2015
+        ],
+        "k": 2,
+        "n": 32,
+        "rate": 0.0625
+      },
+      "accuracy": {
+        "ci95": [
+          0.6574,
+          0.7976
+        ],
+        "k": 110,
+        "n": 150,
+        "rate": 0.7333
+      },
+      "judge": {
+        "answer_relevancy": 0.6175,
+        "context_precision": 0.3111,
+        "context_recall": 0.9333,
+        "faithfulness": 1.0,
+        "groundedness": 1.0,
+        "relevance": 0.6175,
+        "retrieval": 0.9333
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "taxonomy": {
+        "citation_mismatch": 2,
+        "correct": 108,
+        "correct_abstain": 2,
+        "false_abstain": 5,
+        "injection_followed": 0,
+        "missed_abstain": 30,
+        "reader_error": 25,
+        "retrieval_miss": 7,
+        "stale_or_conflict": 0,
+        "ungrounded": 0,
+        "wrong_chunk": 3
+      }
+    },
+    "graphrag": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0173,
+          0.2015
+        ],
+        "k": 2,
+        "n": 32,
+        "rate": 0.0625
+      },
+      "accuracy": {
+        "ci95": [
+          0.6857,
+          0.8213
+        ],
+        "k": 114,
+        "n": 150,
+        "rate": 0.76
+      },
+      "judge": {
+        "answer_relevancy": 0.6395,
+        "context_precision": 0.4467,
+        "context_recall": 0.9733,
+        "faithfulness": 1.0,
+        "groundedness": 1.0,
+        "relevance": 0.6395,
+        "retrieval": 0.9733
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "taxonomy": {
+        "citation_mismatch": 1,
+        "correct": 113,
+        "correct_abstain": 2,
+        "false_abstain": 5,
+        "injection_followed": 0,
+        "missed_abstain": 30,
+        "reader_error": 27,
+        "retrieval_miss": 4,
+        "stale_or_conflict": 0,
+        "ungrounded": 0,
+        "wrong_chunk": 0
+      }
+    },
+    "hybrid_rerank": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0173,
+          0.2015
+        ],
+        "k": 2,
+        "n": 32,
+        "rate": 0.0625
+      },
+      "accuracy": {
+        "ci95": [
+          0.7216,
+          0.8504
+        ],
+        "k": 119,
+        "n": 150,
+        "rate": 0.7933
+      },
+      "judge": {
+        "answer_relevancy": 0.6669,
+        "context_precision": 0.3267,
+        "context_recall": 0.98,
+        "faithfulness": 1.0,
+        "groundedness": 1.0,
+        "relevance": 0.6669,
+        "retrieval": 0.98
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "taxonomy": {
+        "citation_mismatch": 0,
+        "correct": 119,
+        "correct_abstain": 2,
+        "false_abstain": 5,
+        "injection_followed": 0,
+        "missed_abstain": 30,
+        "reader_error": 23,
+        "retrieval_miss": 2,
+        "stale_or_conflict": 0,
+        "ungrounded": 0,
+        "wrong_chunk": 1
+      }
+    },
+    "hyde": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0324,
+          0.2422
+        ],
+        "k": 3,
+        "n": 32,
+        "rate": 0.0938
+      },
+      "accuracy": {
+        "ci95": [
+          0.6786,
+          0.8154
+        ],
+        "k": 113,
+        "n": 150,
+        "rate": 0.7533
+      },
+      "judge": {
+        "answer_relevancy": 0.6395,
+        "context_precision": 0.3,
+        "context_recall": 0.9,
+        "faithfulness": 1.0,
+        "groundedness": 1.0,
+        "relevance": 0.6395,
+        "retrieval": 0.9
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "taxonomy": {
+        "citation_mismatch": 1,
+        "correct": 112,
+        "correct_abstain": 3,
+        "false_abstain": 5,
+        "injection_followed": 0,
+        "missed_abstain": 29,
+        "reader_error": 17,
+        "retrieval_miss": 14,
+        "stale_or_conflict": 0,
+        "ungrounded": 0,
+        "wrong_chunk": 1
+      }
+    },
+    "multi_query": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0173,
+          0.2015
+        ],
+        "k": 2,
+        "n": 32,
+        "rate": 0.0625
+      },
+      "accuracy": {
+        "ci95": [
+          0.6928,
+          0.8272
+        ],
+        "k": 115,
+        "n": 150,
+        "rate": 0.7667
+      },
+      "judge": {
+        "answer_relevancy": 0.645,
+        "context_precision": 0.3022,
+        "context_recall": 0.9067,
+        "faithfulness": 1.0,
+        "groundedness": 1.0,
+        "relevance": 0.645,
+        "retrieval": 0.9067
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "taxonomy": {
+        "citation_mismatch": 1,
+        "correct": 114,
+        "correct_abstain": 2,
+        "false_abstain": 5,
+        "injection_followed": 0,
+        "missed_abstain": 30,
+        "reader_error": 16,
+        "retrieval_miss": 12,
+        "stale_or_conflict": 0,
+        "ungrounded": 0,
+        "wrong_chunk": 2
+      }
+    },
+    "self_rag": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0173,
+          0.2015
+        ],
+        "k": 2,
+        "n": 32,
+        "rate": 0.0625
+      },
+      "accuracy": {
+        "ci95": [
+          0.7216,
+          0.8504
+        ],
+        "k": 119,
+        "n": 150,
+        "rate": 0.7933
+      },
+      "judge": {
+        "answer_relevancy": 0.6669,
+        "context_precision": 0.3267,
+        "context_recall": 0.98,
+        "faithfulness": 1.0,
+        "groundedness": 1.0,
+        "relevance": 0.6669,
+        "retrieval": 0.98
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "taxonomy": {
+        "citation_mismatch": 0,
+        "correct": 119,
+        "correct_abstain": 2,
+        "false_abstain": 5,
+        "injection_followed": 0,
+        "missed_abstain": 30,
+        "reader_error": 23,
+        "retrieval_miss": 2,
+        "stale_or_conflict": 0,
+        "ungrounded": 0,
+        "wrong_chunk": 1
+      }
+    },
+    "step_back": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0324,
+          0.2422
+        ],
+        "k": 3,
+        "n": 32,
+        "rate": 0.0938
+      },
+      "accuracy": {
+        "ci95": [
+          0.6786,
+          0.8154
+        ],
+        "k": 113,
+        "n": 150,
+        "rate": 0.7533
+      },
+      "judge": {
+        "answer_relevancy": 0.6395,
+        "context_precision": 0.3156,
+        "context_recall": 0.9467,
+        "faithfulness": 1.0,
+        "groundedness": 1.0,
+        "relevance": 0.6395,
+        "retrieval": 0.9467
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "taxonomy": {
+        "citation_mismatch": 2,
+        "correct": 111,
+        "correct_abstain": 3,
+        "false_abstain": 5,
+        "injection_followed": 0,
+        "missed_abstain": 29,
+        "reader_error": 24,
+        "retrieval_miss": 8,
+        "stale_or_conflict": 0,
+        "ungrounded": 0,
+        "wrong_chunk": 0
+      }
+    },
+    "vector": {
+      "abstain_when_unanswerable": {
+        "ci95": [
+          0.0173,
+          0.2015
+        ],
+        "k": 2,
+        "n": 32,
+        "rate": 0.0625
+      },
+      "accuracy": {
+        "ci95": [
+          0.6786,
+          0.8154
+        ],
+        "k": 113,
+        "n": 150,
+        "rate": 0.7533
+      },
+      "judge": {
+        "answer_relevancy": 0.634,
+        "context_precision": 0.3,
+        "context_recall": 0.9,
+        "faithfulness": 1.0,
+        "groundedness": 1.0,
+        "relevance": 0.634,
+        "retrieval": 0.9
+      },
+      "judge_backend": "mock",
+      "stale_answers": {
+        "ci95": [
+          0.0,
+          0.0535
+        ],
+        "k": 0,
+        "n": 68,
+        "rate": 0.0
+      },
+      "taxonomy": {
+        "citation_mismatch": 2,
+        "correct": 111,
+        "correct_abstain": 2,
+        "false_abstain": 5,
+        "injection_followed": 0,
+        "missed_abstain": 30,
+        "reader_error": 17,
+        "retrieval_miss": 14,
+        "stale_or_conflict": 0,
+        "ungrounded": 0,
+        "wrong_chunk": 1
+      }
+    }
+  }
+}
